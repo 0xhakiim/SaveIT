@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js" // Fixed: standard provider name
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  files    File[]
+  folders  Folder[]
+  sessions Session[]
+
+  @@map("users") // Maps this model to the "users" table in the database
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Self-relation for infinite nesting
+  parentId String? // Null means it's in the "Root" directory
+  parent   Folder?  @relation("FolderToFolder", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderToFolder")
+
+  // Files contained in this folder
+  files File[]
+
+  @@unique([name, parentId, userId]) // Prevents duplicate folder names in the same directory
+  @@map("folders")
+}
+
+model File {
+  id         String   @id @default(uuid())
+  name       String
+  mimeType   String // e.g., "image/jpeg", "video/mp4" to help the frontend
+  size       BigInt // Changed to BigInt to support files larger than 2GB
+  storageKey String // The actual filename/path on your local disk or S3 bucket
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Location
+  folderId String? // Null means it's in the "Root" directory
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@map("files")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
