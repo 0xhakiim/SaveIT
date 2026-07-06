@@ -1,10 +1,12 @@
 import { prisma as db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { buildStorageKey } from "@/lib/minio";
+import { buildStorageKey, minio } from "@/lib/minio";
+
+import { Readable } from "stream";
 export async function POST(req: Request) {
     const formData = await req.formData();
-
+    const userId = (await getCurrentUser())?.id || "";
     const file = formData.get("file") as File | null
 
         ;
@@ -19,37 +21,52 @@ export async function POST(req: Request) {
     console.log(file.name);
     console.log(file.size);
     console.log(file.type);
-
+    const folderId =
+        (formData.get("folderId") as string) || null;
     // Upload to MinIO here
     // Save metadata to Postgres here
     const storagekey = buildStorageKey({
-        userId: (await getCurrentUser())?.id || "",
-        folderId: formData.get("folderId") as string | null,
+        userId,
+        folderId: folderId,
         originalName: file.name,
     });
-    let folderId: string | null = null;
-    if (formData.get("folderId") as string == "") {
-        folderId = null;
-    } else {
-        folderId = formData.get("folderId") as string;
-    }
-    const fileRecord = await db.file.create({
-        data: {
-            name: file.name,
-            size: file.size,
-            mimeType: file.type,
-            userId: (await getCurrentUser())?.id || null,
-            folderId: folderId,
-            storageKey: storagekey,
-        },
-    });
-    if (!fileRecord) {
+
+    try {
+        const fileRecord = await db.file.create({
+            data: {
+                name: file.name,
+                size: file.size,
+                mimeType: file.type,
+                userId: userId,
+                folderId: folderId,
+                storageKey: storagekey,
+            },
+        });
+        if (!fileRecord) {
+            return Response.json(
+                { error: "Failed to save file metadata" },
+                { status: 500 }
+            );
+        }
+        await minio.putObject(
+            "drive",
+            storagekey,
+            Readable.from(file.stream()),
+            file.size,
+            {
+                "Content-Type": file.type,
+                "Original-Name": file.name,
+            }
+        )
+
+        return Response.json({ success: true });
+    } catch (error) {
+        console.error("Error uploading file:", error);
         return Response.json(
-            { error: "Failed to save file metadata" },
+            { error: "Failed to upload file" },
             { status: 500 }
         );
     }
-    return Response.json({ success: true });
 }
 export async function GET(req: Request) {
 

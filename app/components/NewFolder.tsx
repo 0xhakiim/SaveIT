@@ -1,4 +1,6 @@
 "use client";
+import { IconClose, IconPlusFolder } from "./Icons";
+
 const NewFolder = ({ open, onClose, parentFolderId }: { open: boolean; onClose: () => void; parentFolderId: string | null }) => {
     async function handleFolderCreation(
         event: React.FormEvent<HTMLFormElement>
@@ -17,16 +19,64 @@ const NewFolder = ({ open, onClose, parentFolderId }: { open: boolean; onClose: 
     }
     if (!open) return null;
     return (
-        <div className="newfolder-start h-1/2 rounded-xl p-6 max-h-1/2 inset-0 z-50 w-1/3 flex flex-col gap-4 align-center justify-center items-center  bg-gray-100 dark:bg-gray-900">
-            <div onClick={onClose} className="absolute inset-0  text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                Close
-            </div>
-            <form className=" relative z-10 shadow-lg flex flex-col gap-4 align-center justify-center items-center  " onSubmit={handleFolderCreation}>
-                <input type="text" name="folderName" className="flex flex-col w-full rounded-full pt-2 pb-2 bg-white dark:bg-gray-800" placeholder="Folder Name" required />
-                <button type="submit" className="flex flex-col w-full p-6 rounded-full bg-blue-500 text-white py-2 px-4 hover:bg-blue-600">
-                    Create Folder
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+                onClick={onClose}
+                className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                aria-hidden="true"
+            />
+            <div
+                className="drive-modal-enter relative z-10 w-full max-w-sm rounded-2xl p-6 shadow-2xl"
+                style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+            >
+                <button
+                    onClick={onClose}
+                    aria-label="Close"
+                    className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                    <IconClose />
                 </button>
-            </form>
+
+                <div className="flex items-center gap-2.5 mb-5">
+                    <span
+                        className="flex h-9 w-9 items-center justify-center rounded-lg"
+                        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                    >
+                        <IconPlusFolder />
+                    </span>
+                    <h3 className="text-base font-semibold">New folder</h3>
+                </div>
+
+                <form className="flex flex-col gap-4" onSubmit={handleFolderCreation}>
+                    <input
+                        type="text"
+                        name="folderName"
+                        autoFocus
+                        className="w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none focus:ring-2 bg-white dark:bg-gray-800"
+                        style={{ borderColor: "var(--card-border)" }}
+                        placeholder="Untitled folder"
+                        required
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+                            style={{ background: "var(--accent)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-strong)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+                        >
+                            Create folder
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }
